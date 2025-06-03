@@ -1,0 +1,12 @@
+/venv
+
+/**/migrations
+!/**/migrations/__init__.py
+
+db.sqlite
+
+.env
+
+.pyc
+.pyo
+__pycache__
