@@ -27,8 +27,9 @@ SECRET_KEY = 'django-insecure-^70=r$6%t5mbn2&kn87htp^38fd=_eg=axcf#*bm8z=eb2--a$
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
-
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',  # Adjust this to your frontend's URL
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,9 +44,11 @@ INSTALLED_APPS = [
     'accounts',
     'records',
     'transfers',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -99,7 +102,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True
+    'ROTATE_REFRESH_TOKENS': True,
+    "TOKEN_OBTAIN_SERIALIZER": 'accounts.serializers.CustomObtainPairSerializer',
 }
 
 
