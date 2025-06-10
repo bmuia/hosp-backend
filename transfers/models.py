@@ -17,6 +17,7 @@ class DataAccessRequest(models.Model):
     patient = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'roles': 'patient'})
     record = models.ForeignKey(PatientRecord, on_delete=models.SET_NULL, null=True,blank=True)
     request_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_data_access_requests',null=True,blank=True) 
+    created_at = models.DateTimeField(auto_now_add=True,blank=True,null=True)
 
 
 

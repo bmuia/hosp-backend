@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import PatientRecord, Prescription
-
-
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription

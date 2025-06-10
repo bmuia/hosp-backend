@@ -8,6 +8,7 @@ from accounts.permissions import IsDoctorUser
 from django.contrib.auth import get_user_model
 from accounts.models import Hospital
 from records.models import PatientRecord
+from.serializers import TransferRequestSerializer
 
 User = get_user_model()
 
@@ -15,9 +16,8 @@ User = get_user_model()
 @permission_classes([IsDoctorUser])
 def send_data_access_request(request):
     patient_id = request.data.get('patient_id')
-    to_hospital_id = request.data.get('to_hospital_id')
 
-    if not all([patient_id, to_hospital_id]):
+    if not patient_id:
         return Response({'error': 'One of the fields is missing'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
@@ -26,10 +26,9 @@ def send_data_access_request(request):
         return Response({'error': 'Target patient not found'}, status=status.HTTP_404_NOT_FOUND)
 
     
-    try:
-        to_hospital_obj = Hospital.objects.get(id=to_hospital_id)
-    except Hospital.DoesNotExist:
-        return Response({'error': 'Target hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+    to_hospital_obj = patient_user.hospital 
+    if not to_hospital_obj:
+        return Response({'error': 'The target patient is not associated with any hospital.'}, status=status.HTTP_400_BAD_REQUEST)
     
     from_hospital_obj = None
     if hasattr(request.user, 'hospital'): 
@@ -43,17 +42,21 @@ def send_data_access_request(request):
         to_hospital=to_hospital_obj,
         from_hospital=from_hospital_obj,
         status='pending'
+
     ).first()
 
     if existing_requests:
         return Response({'message': 'A pending request already exists for this patient to this hospital from your hospital.'}, status=status.HTTP_409_CONFLICT)
+    
+    latest_patient_record = PatientRecord.objects.filter(patient=patient_user).first()
     
     new_request = DataAccessRequest.objects.create(
         patient=patient_user,
         to_hospital=to_hospital_obj,
         from_hospital=from_hospital_obj,
         status='pending',
-        request_by=request.user 
+        request_by=request.user,
+        record=latest_patient_record 
     )
 
     return Response({'message': 'Data access request sent successfully.', 'request_id': new_request.id}, status=status.HTTP_201_CREATED)
@@ -80,12 +83,11 @@ def grant_access_request(request, request_id):
         # associated with this access request.
         record_to_grant = PatientRecord.objects.get(
             id=record_id_to_grant, 
-            patient=access_request.patient # Ensure the record belongs to the patient in the request
+            patient=access_request.patient 
         )
     except PatientRecord.DoesNotExist:
         return Response({'error': 'The specified record_id does not exist for this patient.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Assign the identified record to the access request
     access_request.record = record_to_grant 
     access_request.status = 'granted'
     access_request.save()
@@ -129,3 +131,13 @@ def deny_access_request(request, request_id):
     return Response({
         'message': 'Admin has successfully denied the request.'
     }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_all_data_access_requests(request):
+    """
+    Fetches all data access requests for an admin user.
+    """
+    all_requests = DataAccessRequest.objects.all().order_by('-created_at')
+    serializer = TransferRequestSerializer(all_requests, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
