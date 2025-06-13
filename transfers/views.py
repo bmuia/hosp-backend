@@ -133,7 +133,6 @@ def deny_access_request(request, request_id):
     }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsAdminUser])
 def get_all_data_access_requests(request):
     """
     Fetches all data access requests for an admin user.
